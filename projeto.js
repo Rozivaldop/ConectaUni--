@@ -1,6 +1,9 @@
 // SOBRE O PROJETO (Extensão III), REDE E CONECTIVIDADE (TCP/IP) E DOSSIÊ EM PDF
 // Carregado depois do auth.js (usa lerLS, gravarLS, esc e appState).
 
+// Integrantes do projeto (aparecem na capa do dossiê e no TAP)
+const EQUIPE = ['Rozivaldo Pinheiro da Silva Junior', 'Claudia Ferreira Mendonça', 'Gabriel Vinícius de Melo Castro', 'João Felipe Nobrega Moura', 'Elias Ciole de Góis'];
+
 // ---------- helpers de diagramas SVG ----------
 const T = (x, y, s, t, o = '') => `<text x="${x}" y="${y}" font-size="${s}" ${o}>${t}</text>`;
 function caixa(x, y, w, titulo, linhas, cor = '#2563eb') {
@@ -315,10 +318,16 @@ function baixarSQL() {
 }
 
 // ---------- textos editáveis (Canvas, TAP) salvos no navegador ----------
-const textoDoc = (k, padrao) => lerLS('cu_doc', {})[k] ?? padrao;
+// Texto salvo pelo usuário ou o padrão. Um texto antigo do campo da equipe (tap8) que ficou salvo sem edição é ignorado.
+const textoDoc = (k, padrao) => {
+    const v = lerLS('cu_doc', {})[k];
+    if (v === undefined || (k === 'tap8' && /^\s*\[Nomes dos integrantes/.test(v))) return padrao;
+    return v;
+};
 const fmt = t => esc(t).replace(/\n/g, '<br>');
-function salvarDoc(k, t) { const d = lerLS('cu_doc', {}); d[k] = t; gravarLS('cu_doc', d); }
-const bloco = (ed, k, padrao) => `<div class="doc-ed" ${ed ? `contenteditable="true" onblur="salvarDoc('${k}', this.innerText)"` : ''}>${fmt(textoDoc(k, padrao))}</div>`;
+// Se o texto continua igual ao padrão, não grava (assim mudanças futuras no padrão aparecem).
+function salvarDoc(k, t, padrao) { const d = lerLS('cu_doc', {}); if (padrao !== undefined && t.trim() === padrao.trim()) delete d[k]; else d[k] = t; gravarLS('cu_doc', d); }
+const bloco = (ed, k, padrao) => `<div class="doc-ed" ${ed ? `contenteditable="true" data-p="${esc(padrao)}" onblur="salvarDoc('${k}', this.innerText, this.dataset.p)"` : ''}>${fmt(textoDoc(k, padrao))}</div>`;
 
 const CANVAS = [
     ['valor', 'Proposta de valor', 'Conectar estudantes que se mudam para estudar a moradias seguras, com preço de referência e rede de apoio entre colegas.'],
@@ -341,7 +350,7 @@ const TAP = [
     ['tap5', 'Premissas e restrições', 'Dados salvos no navegador (localStorage); locais de demonstração; prazo do semestre letivo.'],
     ['tap6', 'Partes interessadas', 'Estudantes, proprietários, universidade, professor orientador, equipe do projeto.'],
     ['tap7', 'Marcos principais', '[Preencha com as datas da sua equipe: levantamento, modelagem, desenvolvimento, testes, apresentação]'],
-    ['tap8', 'Equipe e aprovação', '[Nomes dos integrantes, orientador e data de aprovação]']
+    ['tap8', 'Equipe e aprovação', 'Integrantes: ' + EQUIPE.join('; ') + '. Orientador e data de aprovação: [preencher].']
 ];
 const EAP = [
     ['1. Gerenciamento', ['1.1 Termo de Abertura (TAP)', '1.2 Cronograma e acompanhamento']],
@@ -564,7 +573,7 @@ function baixarDossie() {
         <button class="dos-fechar" onclick="fecharDossie()">Fechar</button></div>
         <div id="dossie-doc">
         <div class="capa"><div class="linha"></div><h1>Dossiê de Evidências de Extensão</h1><p class="sub">ConectaUni: Estudantes conectam estudantes</p>
-        <p><strong>Responsável:</strong> ${esc(u.nome)}</p><p>${esc(u.universidade)} | ${esc(u.curso)}</p><p>Gerado em ${hoje}</p></div>
+        <p><strong>Equipe do projeto:</strong></p>${EQUIPE.map(n => `<p>${esc(n)}</p>`).join('')}<p style="margin-top:8mm;">Centro Universitário do Rio Grande do Norte (UNI-RN)</p><p>Curso: Sistemas de Informação</p><p>Gerado em ${hoje}</p></div>
         ${partes.map(([t, h]) => `<section class="parte"><h2>${t}</h2>${h}</section>`).join('')}</div>`;
     document.body.appendChild(ov);
     document.body.style.overflow = 'hidden';
